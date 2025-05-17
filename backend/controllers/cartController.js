@@ -1,5 +1,7 @@
 const Cart = require("../models/cartModel");
-const Product= require("../models/productModel")
+const Product = require("../models/productModel");
+const Order = require("../models/order.js"); // Update the path as needed
+
 // Get the cart
 exports.getCart = async (req, res) => {
   let cart = await Cart.findOne();
@@ -56,8 +58,50 @@ exports.removeFromCart = async (req, res) => {
 
 // Clear the cart
 exports.clearCart = async (req, res) => {
-  await Cart.deleteMany();
-  res.json({ message: "Cart cleared" });
+  try {
+    console.log(req.body); // Log the request body for debugging
+
+    // Extract products from request body (assumes an array of products is sent)
+    const { cartItems } = req.body; // Expect cartItems to be an array of { productId, quantity }
+
+    if (!cartItems || cartItems.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Cart is empty or invalid data received" });
+    }
+
+    console.log("Before saving order");
+
+    // Create an order with the received cart items
+    const order = await Order.create({
+      products: cartItems.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+      })),
+    });
+
+    console.log(order, "Order created");
+
+    // Delete items from the cart based on product IDs
+    const productIds = cartItems.map((item) => item.productId);
+    const deletedItems = await Cart.deleteMany({
+      productId: { $in: productIds },
+    });
+
+    console.log(deletedItems, "Items removed from cart");
+
+    // Send the response
+    res.status(200).json({
+      message: "Cart cleared and order created",
+      order,
+      deletedItems,
+    });
+  } catch (error) {
+    console.error("Error clearing cart:", error);
+    res
+      .status(500)
+      .json({ message: "Error clearing cart", error: error.message });
+  }
 };
 
 // Increment item quantity in the cart
@@ -108,4 +152,3 @@ exports.decrementCartItem = async (req, res) => {
 
   return res.status(404).json({ message: "Item not found in the cart" });
 };
-

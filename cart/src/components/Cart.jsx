@@ -3,7 +3,7 @@ import useStore from "../store/store";
 import productStore from "../store/productStore";
 
 const ShoppingCart = () => {
-  const { cart, incrProduct, decrProduct, resetProduct } = useStore();
+  const { cart, incrProduct, decrProduct, resetProduct,checkout } = useStore();
   const { products } = productStore();
 
   console.log("Cart object:", cart);
@@ -71,7 +71,7 @@ const ShoppingCart = () => {
         >
           Reset Cart
         </button>
-        <button className="w-full bg-blue-500 text-white py-2 mt-4 rounded hover:bg-blue-600">
+        <button className="w-full bg-blue-500 text-white py-2 mt-4 rounded hover:bg-blue-600" onClick={checkout}>
           Checkout
         </button>
       </div>
