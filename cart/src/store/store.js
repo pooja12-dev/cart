@@ -40,68 +40,103 @@ const useStore = create(
         }
       },
 
-      incrProduct: (id) =>
-        set((state) => {
-          const quantity = state.cart[id] ?? 0;
-          return { cart: { ...state.cart, [id]: quantity + 1 } };
-        }),
+      incrProduct: async (id) => {
+  const { cart } = get();
+  const quantity = cart[id]?.quantity ?? 0;
 
-      decrProduct: async (id) => {
-        const { cart } = get();
-        const quantity = cart[id].quantity ?? 0;
-        console.log(quantity);
+  try {
+    // Make an API call to increment the product quantity
+    const response = await fetch("http://localhost:5000/api/increment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ productId: id }),
+    });
 
-        if (quantity > 1) {
-          try {
-            // Make an API call to decrement the product quantity
-            const response = await fetch(
-              "http://localhost:5000/api/decrement",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ productId: id }),
-              }
-            );
+    if (response.ok) {
+      // Update the state only after a successful API call
+      set((state) => ({
+        cart: {
+          ...state.cart,
+          [id]: {
+            ...state.cart[id], // Preserve the rest of the product's properties
+            quantity: state.cart[id]?.quantity + 1 || 1, // Increment the quantity
+          },
+        },
+      }));
+      console.log("Incremented product in UI and database");
+    } else {
+      console.error("Failed to increment product in database");
+    }
+  } catch (error) {
+    console.error("Error incrementing product:", error);
+  }
+},
 
-            if (response.ok) {
-              // Update the state only after a successful API call
-              set((state) => ({
-                cart: { ...state.cart, [id]: quantity - 1 },
-              }));
-              console.log("Decremented product in UI and database");
-            } else {
-              console.error("Failed to decrement product in database");
-            }
-          } catch (error) {
-            console.error("Error decrementing product:", error);
-          }
-        } else if (quantity === 1) {
-          try {
-            // Make an API call to remove the product from the cart
-            const response = await fetch("/api/remove", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ productId: id }),
-            });
+     decrProduct: async (id) => {
+  const { cart } = get();
+  const quantity = cart[id]?.quantity ?? 0;
+  console.log(quantity);
 
-            if (response.ok) {
-              // Remove the product from the state after successful API call
-              set((state) => {
-                const newCart = { ...state.cart };
-                delete newCart[id];
-                return { cart: newCart };
-              });
-              console.log("Removed product from UI and database");
-            } else {
-              console.error("Failed to remove product in database");
-            }
-          } catch (error) {
-            console.error("Error removing product:", error);
-          }
+  if (quantity > 1) {
+    try {
+      // Make an API call to decrement the product quantity
+      const response = await fetch(
+        "http://localhost:5000/api/decrement",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: id }),
         }
-      },
+      );
+
+      if (response.ok) {
+        // Update the state only after a successful API call
+        set((state) => ({
+          cart: {
+            ...state.cart,
+            [id]: {
+              ...state.cart[id],
+              quantity: state.cart[id].quantity - 1,
+            },
+          },
+        }));
+        console.log("Decremented product in UI and database");
+      } else {
+        console.error("Failed to decrement product in database");
+      }
+    } catch (error) {
+      console.error("Error decrementing product:", error);
+    }
+  } else if (quantity === 1) {
+    try {
+      // Make an API call to remove the product from the cart
+      const response = await fetch("/api/remove", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id }),
+      });
+
+      if (response.ok) {
+        // Remove the product from the state after successful API call
+        set((state) => {
+          const newCart = { ...state.cart };
+          delete newCart[id];
+          return { cart: newCart };
+        });
+        console.log("Removed product from UI and database");
+      } else {
+        console.error("Failed to remove product in database");
+      }
+    } catch (error) {
+      console.error("Error removing product:", error);
+    }
+  }
+},
+
 
       resetProduct: () => set({ cart: {} }),
+
+     
     }),
     { name: "product-data" } // Configuration for persist middleware
   )

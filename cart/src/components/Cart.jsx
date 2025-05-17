@@ -4,10 +4,33 @@ import productStore from "../store/productStore";
 
 const ShoppingCart = () => {
   const { cart, incrProduct, decrProduct, resetProduct } = useStore();
+  const { products } = productStore();
 
-  // Calculate total
-  const total = Object.values(cart)
-    .reduce((sum, { quantity }) => sum + quantity, 0)
+  console.log("Cart object:", cart);
+  console.log("Products array:", products);
+
+  // Check types of product IDs in cart and products
+  Object.entries(cart).forEach(([productId]) => {
+    console.log("Cart productId (type):", productId, typeof productId);
+  });
+  products.forEach((p) => {
+    console.log("Product id (type):", p._id, typeof p._id);
+  });
+
+  // Calculate total - adjust matching of productId type with p.id type
+  const total = Object.entries(cart)
+    .reduce((sum, [productId, { quantity }]) => {
+      // Try matching with string or number
+      let product = products.find((p) => p._id === productId); // try string match
+      if (!product) {
+        product = products.find((p) => p._id === Number(productId)); // try number match
+      }
+      if (!product) {
+        console.warn("Product not found for id:", productId);
+        return sum;
+      }
+      return sum + product.price * quantity;
+    }, 0)
     .toFixed(2);
 
   return (
